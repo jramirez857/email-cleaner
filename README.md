@@ -7,6 +7,7 @@ Activate the virtual environment and install dependencies by using `pip install 
 ## Usage
 Example: Get amount of times each unique sender appears in your last 1000 emails printed in a senders.json.
 >python email_parser.py -n 1000
+
 If n is not provided the default is 100 emails.
 
 ## Thanks
