@@ -9,6 +9,7 @@ import json
 import logging
 import progressbar
 import argparse
+from itertools import islice
 from gmail import Gmail
 
 
@@ -105,9 +106,10 @@ class EmailParser:
             senders[self.get_sender(email)] += 1
             logging.debug("senders is size: %d and type: ", len(senders))
         logging.info("Got %d senders from %d messages", len(senders), len(messages))
-        return dict(
-            OrderedDict(sorted(senders.items(), key=lambda x: x[1], reverse=True))
-        )
+        ordered_senders = OrderedDict(sorted(senders.items(), key=lambda x: x[1], reverse=True))
+        logging.info("Your top 10 email senders in your last %d emails are: ", len(messages))
+        pp.pprint(list(islice(ordered_senders, 10))[:10])
+        return dict(ordered_senders)
 
 
 if __name__ == "__main__":
