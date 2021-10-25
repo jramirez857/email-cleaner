@@ -31,6 +31,21 @@ jobs:
         flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-    - name: Test with pytest
-      run: |
-        pytest
+    - name: Python Blacken
+        # You may pin to the exact commit or the version.
+        # uses: piotrpawlaczek/python-blacken@00da49d5262ea8408aa006873de629fef9fc9dd1
+      uses: piotrpawlaczek/python-blacken@v20.8b1
+      with:
+        # File or directory to run black on.
+        path: . # optional, default is .
+        # The number of characters allowed per line.
+        line-length: 88 # optional, default is 81
+    - name: Python Markdown Documentation
+      # You may pin to the exact commit or the version.
+      # uses: jbheard/markdown-docs@c97b542c3d24257d97d55179445e339251618220
+      uses: jbheard/markdown-docs@v0.1
+      with:
+        # Path to the source folder containing python code
+        src_path: . # optional, default is .
+        # Directory to create markdown documents in
+        dst_path: docs # optional, default is docs
