@@ -13,6 +13,8 @@ from gmail import Gmail
 
 
 pp = pprint.PrettyPrinter(indent=4)
+
+
 class EmailParser:
     """
     This class is used to get the list of senders for a given number of emails.
@@ -23,12 +25,13 @@ class EmailParser:
     :var senders: An OrderedDict of senders and their counts in descending order.
 
     """
+
     def __init__(self, **kwargs):
-        self.num_emails = kwargs.get('num_emails', 100)
-        self.gmail = kwargs.get('gmail_service', Gmail().service)
+        self.num_emails = kwargs.get("num_emails", 100)
+        self.gmail = kwargs.get("gmail_service", Gmail().service)
         logging.basicConfig(
-            level = kwargs.get('log_level', logging.INFO),
-            format = "%(funcName)s():%(lineno)i: %(levelname)s: %(message)s" 
+            level=kwargs.get("log_level", logging.INFO),
+            format="%(funcName)s():%(lineno)i: %(levelname)s: %(message)s",
         )
         self.senders = self.get_ordered_senders()
 
@@ -38,18 +41,24 @@ class EmailParser:
     def __repr__(self) -> str:
         return f"ExtractSenders(num_emails={self.num_emails},\n senders={self.senders})"
 
-    def get_num_messages(self, user_id='me') -> list:
+    def get_num_messages(self, user_id="me") -> list:
         """
         Gets a batch of messages from the Gmail class for the logged in user.
         """
         response = self.gmail.users().messages().list(userId=user_id).execute()
         messages = []
-        while response.get('nextPageToken', None) and len(messages) < self.num_emails:
-            for message in response['messages']:
+        while response.get("nextPageToken", None) and len(messages) < self.num_emails:
+            for message in response["messages"]:
                 messages.append(message)
-            response = self.gmail.users().messages().list(
-                userId=user_id, pageToken=response['nextPageToken']).execute()
-            logging.debug("Successfully retrieved %d messages", len(response['messages']))
+            response = (
+                self.gmail.users()
+                .messages()
+                .list(userId=user_id, pageToken=response["nextPageToken"])
+                .execute()
+            )
+            logging.debug(
+                "Successfully retrieved %d messages", len(response["messages"])
+            )
         logging.info("Successfully retrieved %d messages", len(messages))
         return messages
 
@@ -61,22 +70,26 @@ class EmailParser:
         :param email: The email to extract the sender from.
         :return: The sender of the email.
         """
-        logging.debug("headers_type: %s", type(email['payload']['headers']),
-                        "headers: %s", email['payload']['headers'])
+        logging.debug(
+            "headers_type: %s",
+            type(email["payload"]["headers"]),
+            "headers: %s",
+            email["payload"]["headers"],
+        )
         sender = "Unknown Sender"
-        for header in email['payload']['headers']:
-            if header['name'] == 'From':
-                sender = header['value']
+        for header in email["payload"]["headers"]:
+            if header["name"] == "From":
+                sender = header["value"]
                 break
-        return sender           
+        return sender
 
-    def get_email_by_id(self, message_id, user='me') -> dict:
+    def get_email_by_id(self, message_id, user="me") -> dict:
         """
         Gets the email by the message id for specified user.
 
         :param message: The message to get the email for.
         """
-        return self.gmail.users().messages().get(userId='me', id=message_id).execute()
+        return self.gmail.users().messages().get(userId="me", id=message_id).execute()
 
     def get_ordered_senders(self) -> OrderedDict:
         """
@@ -88,18 +101,27 @@ class EmailParser:
         senders = defaultdict(int)
         messages = self.get_num_messages()
         for i, message in zip(progressbar.progressbar(messages), messages):
-            email = self.get_email_by_id(message['id'])
+            email = self.get_email_by_id(message["id"])
             senders[self.get_sender(email)] += 1
             logging.debug("senders is size: %d and type: ", len(senders))
-        logging.info("Got %d senders from %d messages" , len(senders), len(messages))
-        return dict(OrderedDict(sorted(senders.items(), key=lambda x: x[1], reverse=True)))
+        logging.info("Got %d senders from %d messages", len(senders), len(messages))
+        return dict(
+            OrderedDict(sorted(senders.items(), key=lambda x: x[1], reverse=True))
+        )
 
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Get the senders for a given number of emails.')
-    parser.add_argument('-n', '--num_emails', type=int, default=100,
-        help='The number of emails to get the senders for.')
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description="Get the senders for a given number of emails."
+    )
+    parser.add_argument(
+        "-n",
+        "--num_emails",
+        type=int,
+        default=100,
+        help="The number of emails to get the senders for.",
+    )
     args = parser.parse_args()
     emails = EmailParser(log_level=logging.INFO, num_emails=args.num_emails)
-    with open('senders.json', 'w') as f:
+    with open("senders.json", "w") as f:
         f.write(json.dumps(emails.senders, indent=4))
