@@ -1,3 +1,5 @@
+[![Sourcery](https://img.shields.io/badge/Sourcery-enabled-brightgreen)](https://sourcery.ai)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 # email-cleaner
 This script is in development. Right now it can get the top number of senders in a users gmail inbox.
 ## Setup
