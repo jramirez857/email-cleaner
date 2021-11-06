@@ -15,16 +15,15 @@ SCOPES = ["https://mail.google.com/"]
 APPLICATION_NAME = "Gmail API Python"
 
 
-class Gmail:
+class GmailService:
     """
     The GmailAuth class is used to authenticate with the Gmail API.
     """
 
     def __init__(self, **kwargs):
         self.credentials_path = kwargs.get("credentials", "credentials.json")
-        self.service = self.get_service()
 
-    def get_credentials(self, token_file="token.json"):
+    def _get_credentials(self, token_file="token.json"):
         """
         Checks if the token.json file exists and uses it if it does.
         If it doesnt, it checks for the credentials.json file, runs through the flow and
@@ -44,11 +43,11 @@ class Gmail:
             token.write(user_credentials.to_json())
         return user_credentials
 
-    def get_service(self):
+    def get(self):
         """
         Returns the service object for the email API.
         """
-        return build("gmail", "v1", credentials=self.get_credentials())
+        return build("gmail", "v1", credentials=self._get_credentials())
 
 
 if __name__ == "__main__":
@@ -61,4 +60,4 @@ if __name__ == "__main__":
         help="The filename or path to the credentials.",
     )
     args = parser.parse_args()
-    gmail = Gmail(credentials=args.credentials)
+    gmail = GmailService(credentials=args.credentials).get()
