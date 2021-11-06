@@ -62,13 +62,11 @@ class TopSenders:
         """
         Gets the messages from the Gmail API for the logged in user.
         """
-        return self.gmail.users().messages().list(
-                    userId="me",
-                    pageToken=token
-                ).execute() if token else self.gmail.users().messages().list(
-                    userId="me"
-                ).execute()
-
+        return (
+            self.gmail.users().messages().list(userId="me", pageToken=token).execute()
+            if token
+            else self.gmail.users().messages().list(userId="me").execute()
+        )
 
     def _get_num_emails(self, num: int) -> list:
         """
@@ -78,9 +76,9 @@ class TopSenders:
         emails = []
         logging.info("Getting %d emails", num)
         for _ in progressbar.progressbar(range(0, num, len(response["messages"]))):
-            messages = response['messages']
+            messages = response["messages"]
             emails.extend(self._extract_email_info(messages))
-            if response.get('nextPageToken', None) is not None:
+            if response.get("nextPageToken", None) is not None:
                 response = self._get_response(response["nextPageToken"])
             else:
                 logging.warning("No more messages")
