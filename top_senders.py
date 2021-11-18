@@ -29,7 +29,7 @@ class TopSenders:
     def __init__(self, **kwargs):
         self.gmail = kwargs.get("gmail_service", GmailService().get())
         logging.basicConfig(
-            level=kwargs.get("log_level", logging.DEBUG),
+            level=kwargs.get("log_level", logging.INFO),
             format="%(funcName)s():%(lineno)i: %(levelname)s: %(message)s",
         )
 
@@ -111,6 +111,7 @@ class TopSenders:
         return self.gmail.users().messages().get(userId=user, id=message_id).execute()
 
     def get(self, num_emails: int, num_senders: int = 10) -> OrderedDict:
+        #TODO: decide whether this should only return num_senders or all senders as a dict
         """
         Gets a list of top senders from the Gmail API for the logged in user.
 
@@ -119,13 +120,14 @@ class TopSenders:
         :return: A list of the top senders of size num_senders.
 
         """
-        senders = defaultdict(int)
+        senders = defaultdict(list)
         emails = self._get_num_emails(num=num_emails)
         logging.info(f"Getting top senders for { len(emails) } number of emails.")
         for email in progressbar.progressbar(emails):
-            senders[email.sender] += 1
-        top_senders = sorted(senders, key=senders.get, reverse=True)[:num_senders]
+            senders[email.sender].append(email)
+        top_senders = sorted(senders, key= lambda k: len(senders[k]), reverse=True)
         logging.info("top senders: %s", top_senders)
+        pp.pprint(senders)
         return top_senders
 
 
@@ -140,6 +142,13 @@ if __name__ == "__main__":
         default=1000,
         help="The number of emails to get the senders for.",
     )
+    parser.add_argument(
+        "-s",
+        "--num_senders",
+        type=int,
+        default=10,
+        help="The number of top senders to return.",
+    )
     args = parser.parse_args()
-    top_senders = TopSenders(log_level=logging.INFO).get(num_emails=args.num_emails)
+    top_senders = TopSenders(log_level=logging.INFO).get(num_emails=100)
     pp.pprint(top_senders)
