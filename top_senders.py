@@ -111,7 +111,7 @@ class TopSenders:
         return self.gmail.users().messages().get(userId=user, id=message_id).execute()
 
     def get(self, num_emails: int, num_senders: int = 10) -> OrderedDict:
-        #TODO: decide whether this should only return num_senders or all senders as a dict
+        # TODO: decide whether this should only return num_senders or all senders as a dict
         """
         Gets a list of top senders from the Gmail API for the logged in user.
 
@@ -125,7 +125,7 @@ class TopSenders:
         logging.info(f"Getting top senders for { len(emails) } number of emails.")
         for email in progressbar.progressbar(emails):
             senders[email.sender].append(email)
-        top_senders = sorted(senders, key= lambda k: len(senders[k]), reverse=True)
+        top_senders = sorted(senders, key=lambda k: len(senders[k]), reverse=True)
         logging.info("top senders: %s", top_senders)
         pp.pprint(senders)
         return top_senders
