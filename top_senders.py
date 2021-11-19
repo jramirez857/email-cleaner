@@ -14,77 +14,30 @@ from models.email import Email
 
 pp = pprint.PrettyPrinter(indent=4)
 
-
-class TopSenders:
+class MessagesParser:
     """
-    This class is used to get the list of senders for a given number of emails.
-
-    :param num_emails: The number of emails to get the senders for.
-    :param gmail_service: The Gmail API service.
-    :param log_level: The logging level.
-    :var senders: An OrderedDict of senders and their counts in descending order.
-
+    This class is used to parse a list of messages and returns a list of emails.    
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, messages: list, **kwargs):
+        """
+        Initializes the MessagesParser object.
+
+        :param gmail: The GmailService object.
+        """
         self.gmail = kwargs.get("gmail_service", GmailService().get())
-        logging.basicConfig(
-            level=kwargs.get("log_level", logging.INFO),
-            format="%(funcName)s():%(lineno)i: %(levelname)s: %(message)s",
-        )
+        self.messages = messages
 
     def _parse_email(self, message) -> Email:
         """
         Parses the email and returns an Email object.
-
+        
         :param message: The message to parse.
         :return: An Email object.
         """
-        _email = self.get_email_by_id(message["id"])
+        _email = self._get_email_by_id(message["id"])
         _sender = self._get_sender(_email)
         return Email(id=_email["id"], sender=_sender)
-
-    def _extract_email_info(self, messages: list) -> list:
-        """
-        Extracts the needed information for emails in a response message.
-
-        :param num_emails: The number of emails to get the senders for.
-        :return: A list of emails.
-
-        """
-        emails = []
-        for message in messages:
-            _email = self._parse_email(message)
-            emails.append(_email)
-        return emails
-
-    def _get_response(self, token=None) -> list:
-        """
-        Gets the messages from the Gmail API for the logged in user.
-        """
-        return (
-            self.gmail.users().messages().list(userId="me", pageToken=token).execute()
-            if token
-            else self.gmail.users().messages().list(userId="me").execute()
-        )
-
-    def _get_num_emails(self, num: int) -> list:
-        """
-        Gets a batch of messages from the Gmail class for the logged in user.
-        """
-        response = self._get_response()
-        emails = []
-        logging.info("Getting %d emails", num)
-        for _ in progressbar.progressbar(range(0, num, len(response["messages"]))):
-            messages = response["messages"]
-            emails.extend(self._extract_email_info(messages))
-            if response.get("nextPageToken", None) is not None:
-                response = self._get_response(response["nextPageToken"])
-            else:
-                logging.warning("No more messages")
-                break
-        logging.info("Successfully retrieved %d messages", len(emails))
-        return emails
 
     def _get_sender(self, email) -> str:
         """
@@ -101,7 +54,7 @@ class TopSenders:
                 break
         return sender
 
-    def get_email_by_id(self, message_id, user="me") -> dict:
+    def _get_email_by_id(self, message_id, user="me") -> dict:
         """
         Gets the email by the message id for specified user.
 
@@ -109,6 +62,79 @@ class TopSenders:
         :param user: The user to get the email for.
         """
         return self.gmail.users().messages().get(userId=user, id=message_id).execute()
+
+    def extract_email_info(self) -> list:
+        """
+        Extracts the needed information for emails in a response message.
+        :param num_emails: The number of emails to get the senders for.
+        :return: A list of emails.
+        """
+        emails = []
+        for message in self.messages:
+            _email = self._parse_email(message)
+            emails.append(_email)
+        return emails
+
+
+
+class EmailFetcher:
+    """
+    This class fetches emails from the gmail account.
+
+    Returns:
+        emails (list): list of emails
+    """
+    def __init__(self, num_emails, **kwargs):
+        self.gmail = kwargs.get("gmail_service", GmailService().get())
+        self.num_emails = num_emails
+
+    def get_num_emails(self) -> list:
+        """
+        Gets a batch of messages from the Gmail class for the logged in user.
+        """
+        response = self._get_response()
+        emails = []
+        logging.info("Getting %d emails", self.num_emails)
+        for _ in progressbar.progressbar(range(0, self.num_emails, len(response["messages"]))):
+            emails.extend(MessagesParser(response["messages"]).extract_email_info())
+            if response.get("nextPageToken", None) is not None:
+                response = self._get_response(response["nextPageToken"])
+            else:
+                break
+        logging.info("Successfully retrieved %d messages", len(emails))
+        return emails
+
+    
+
+    def _get_response(self, token=None) -> list:
+        """
+        Gets the messages from the Gmail API for the logged in user.
+        """
+        return (
+            self.gmail.users().messages().list(userId="me").execute()
+            if token is None
+            else self.gmail.users().messages().list(userId="me", pageToken=token).execute()
+        )
+
+class TopSenders:
+    """
+    This class is used to get the list of senders for a given number of emails.
+
+    :param num_emails: The number of emails to get the senders for.
+    :param gmail_service: The Gmail API service.
+    :param log_level: The logging level.
+    :var senders: An OrderedDict of senders and their counts in descending order.
+
+    """
+
+    def __init__(self, **kwargs):
+        logging.basicConfig(
+            level=kwargs.get("log_level", logging.INFO),
+            format="%(funcName)s():%(lineno)i: %(levelname)s: %(message)s",
+        )
+        self.emails = []
+
+
 
     def get(self, num_emails: int, num_senders: int = 10) -> OrderedDict:
         # TODO: decide whether this should only return num_senders or all senders as a dict
@@ -121,7 +147,7 @@ class TopSenders:
 
         """
         senders = defaultdict(list)
-        emails = self._get_num_emails(num=num_emails)
+        emails = EmailFetcher(num_emails = num_emails).get_num_emails()
         logging.info(f"Getting top senders for { len(emails) } number of emails.")
         for email in progressbar.progressbar(emails):
             senders[email.sender].append(email)
