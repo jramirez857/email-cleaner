@@ -14,9 +14,10 @@ from models.email import Email
 
 pp = pprint.PrettyPrinter(indent=4)
 
+
 class MessagesParser:
     """
-    This class is used to parse a list of messages and returns a list of emails.    
+    This class is used to parse a list of messages and returns a list of emails.
     """
 
     def __init__(self, messages: list, **kwargs):
@@ -31,7 +32,7 @@ class MessagesParser:
     def _parse_email(self, message) -> Email:
         """
         Parses the email and returns an Email object.
-        
+
         :param message: The message to parse.
         :return: An Email object.
         """
@@ -76,13 +77,13 @@ class MessagesParser:
         return emails
 
 
-
 class EmailFetcher:
     """
     This class fetches emails from the gmail account.
 
     :param num_emails: The number of emails to get.
     """
+
     def __init__(self, num_emails, **kwargs):
         self.gmail = kwargs.get("gmail_service", GmailService().get())
         self.num_emails = num_emails
@@ -94,7 +95,9 @@ class EmailFetcher:
         response = self._get_response()
         emails = []
         logging.info("Getting %d emails", self.num_emails)
-        for _ in progressbar.progressbar(range(0, self.num_emails, len(response["messages"]))):
+        for _ in progressbar.progressbar(
+            range(0, self.num_emails, len(response["messages"]))
+        ):
             emails.extend(MessagesParser(response["messages"]).extract_email_info())
             if response.get("nextPageToken", None) is not None:
                 response = self._get_response(response["nextPageToken"])
@@ -103,8 +106,6 @@ class EmailFetcher:
         logging.info("Successfully retrieved %d messages", len(emails))
         return emails
 
-    
-
     def _get_response(self, token=None) -> list:
         """
         Gets the messages from the Gmail API for the logged in user.
@@ -112,8 +113,12 @@ class EmailFetcher:
         return (
             self.gmail.users().messages().list(userId="me").execute()
             if token is None
-            else self.gmail.users().messages().list(userId="me", pageToken=token).execute()
+            else self.gmail.users()
+            .messages()
+            .list(userId="me", pageToken=token)
+            .execute()
         )
+
 
 class TopSenders:
     """
@@ -124,8 +129,6 @@ class TopSenders:
     def __init__(self, **kwargs):
         logging.getLogger(__name__).setLevel(logging.INFO)
         self.emails = []
-
-
 
     def get(self, num_emails: int, num_senders: int = 10) -> OrderedDict:
         # TODO: decide whether this should only return num_senders or all senders as a dict
@@ -138,7 +141,7 @@ class TopSenders:
 
         """
         senders = defaultdict(list)
-        emails = EmailFetcher(num_emails = num_emails).get_num_emails()
+        emails = EmailFetcher(num_emails=num_emails).get_num_emails()
         logging.info(f"Getting top senders for { len(emails) } number of emails.")
         for email in progressbar.progressbar(emails):
             senders[email.sender].append(email)
