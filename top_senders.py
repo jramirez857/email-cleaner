@@ -81,8 +81,7 @@ class EmailFetcher:
     """
     This class fetches emails from the gmail account.
 
-    Returns:
-        emails (list): list of emails
+    :param num_emails: The number of emails to get.
     """
     def __init__(self, num_emails, **kwargs):
         self.gmail = kwargs.get("gmail_service", GmailService().get())
@@ -120,18 +119,10 @@ class TopSenders:
     """
     This class is used to get the list of senders for a given number of emails.
 
-    :param num_emails: The number of emails to get the senders for.
-    :param gmail_service: The Gmail API service.
-    :param log_level: The logging level.
-    :var senders: An OrderedDict of senders and their counts in descending order.
-
     """
 
     def __init__(self, **kwargs):
-        logging.basicConfig(
-            level=kwargs.get("log_level", logging.INFO),
-            format="%(funcName)s():%(lineno)i: %(levelname)s: %(message)s",
-        )
+        logging.getLogger(__name__).setLevel(logging.INFO)
         self.emails = []
 
 
@@ -176,5 +167,5 @@ if __name__ == "__main__":
         help="The number of top senders to return.",
     )
     args = parser.parse_args()
-    top_senders = TopSenders(log_level=logging.INFO).get(num_emails=100)
+    top_senders = TopSenders(log_level=logging.INFO).get(num_emails=4000)
     pp.pprint(top_senders)
