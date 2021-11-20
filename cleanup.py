@@ -26,10 +26,11 @@ def get_email_headers(email) -> str:
     headers = {}
     for header in email["payload"]["headers"]:
         if header["name"] == "From":
-            headers['sender'] = header["value"]
-        elif header['name'] == "Subject":
-            headers['subject'] = header["value"]
+            headers["sender"] = header["value"]
+        elif header["name"] == "Subject":
+            headers["subject"] = header["value"]
     return headers
+
 
 def print_emails(emails: list):
     """
@@ -40,12 +41,14 @@ def print_emails(emails: list):
     for email in emails:
         print(f"subject: {email.subject}")
 
+
 class EmailFetcher:
     """
     This class fetches emails from the gmail account.
 
     :param num_emails: The number of emails to get.
     """
+
     def __init__(self):
         self.gmail = GmailService().get()
 
@@ -69,9 +72,9 @@ class EmailFetcher:
         headers = get_email_headers(_email)
         return Email(
             id=_email["id"],
-            size=_email['sizeEstimate'],
-            sender=headers['sender'],
-            subject=headers['subject']
+            size=_email["sizeEstimate"],
+            sender=headers["sender"],
+            subject=headers["subject"],
         )
 
     def extract_email_info(self, messages) -> list:
@@ -93,7 +96,10 @@ class EmailFetcher:
         return (
             self.gmail.users().messages().list(userId="me").execute()
             if token is None
-            else self.gmail.users().messages().list(userId="me", pageToken=token).execute()
+            else self.gmail.users()
+            .messages()
+            .list(userId="me", pageToken=token)
+            .execute()
         )
 
     def get(self, num_emails: int) -> list:
@@ -103,7 +109,9 @@ class EmailFetcher:
         response = self.get_response()
         emails = []
         print(f"Fetching {num_emails} emails 100 at a time...")
-        for _ in progressbar.progressbar(range(0, num_emails, len(response["messages"]))):
+        for _ in progressbar.progressbar(
+            range(0, num_emails, len(response["messages"]))
+        ):
             emails.extend(self.extract_email_info(response["messages"]))
             if response.get("nextPageToken", None) is not None:
                 response = self.get_response(response["nextPageToken"])
@@ -111,6 +119,7 @@ class EmailFetcher:
                 break
         logging.info("Successfully retrieved %d messages", len(emails))
         return emails
+
 
 class Deleter:
     """
@@ -130,7 +139,6 @@ class Deleter:
         )
         self.gmail = GmailService().get()
         self.emails = kwargs.get("emails")
-
 
     def count_emails_by_sender(self) -> dict:
         """
@@ -165,7 +173,9 @@ class Deleter:
         senders = sorted(emails, key=lambda k: len(emails[k]), reverse=True)
         for sender in senders:
             num_emails = len(emails[sender])
-            answer = input(f"View more info on {num_emails} emails from {sender}? (y/n)")
+            answer = input(
+                f"View more info on {num_emails} emails from {sender}? (y/n)"
+            )
             if answer.lower() == "y":
                 print_emails(emails[sender])
             answer = input(f"Delete all {num_emails} emails from {sender}? (y/n)")
@@ -181,6 +191,7 @@ def main(num_emails: int):
     """
     emails = EmailFetcher().get(num_emails)
     Deleter(emails=emails).run()
+
 
 if __name__ == "__main__":
     typer.run(main)
