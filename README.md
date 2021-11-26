@@ -12,10 +12,10 @@ Example: Get amount of times each unique sender appears in your last 1000 emails
 ```
 python email_parser.py -n 4000
 get_num_messages():63: INFO: Successfully retrieved 4000 messages
-100% (4000 of 4000) |############################################################################| Elapsed Time: 0:12:47 Time:  0:12:47 
+100% (4000 of 4000) |############################################################################| Elapsed Time: 0:12:47 Time:  0:12:47
 get_ordered_senders():108: INFO: Got 739 senders from 4000 messages
 get_ordered_senders():110: INFO: Your top 10 email senders in your last 4000 emails are:
-[   'Capital One <capitalone@notification.capitalone.com>',    
+[   'Capital One <capitalone@notification.capitalone.com>',
     'Patch <noreply@patch.com>',
     'Peloton <peloton@s.onepeloton.com>',
     'Micro Center <microcenter@microcenterinsider.com>',
