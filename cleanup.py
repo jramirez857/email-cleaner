@@ -6,9 +6,11 @@ to get a number of emails from your gmail account and .
 from collections import defaultdict
 from typing import List
 import pprint
+import collections
 import logging
 import typer
 import progressbar
+from tabulate import tabulate
 from gmail import GmailService
 from models.email import Email
 
@@ -16,14 +18,14 @@ from models.email import Email
 pp = pprint.PrettyPrinter(indent=4)
 
 
-def get_email_headers(email) -> str:
+def get_email_headers(email) -> dict:
     """
     Extracts the headers from the email and returns them as a dict.
 
     :param email: The email to extract the sender from.
     :return: The headers of the email.
     """
-    headers = {}
+    headers = {"sender": "N/A", "subject": "N/A"}
     for header in email["payload"]["headers"]:
         if header["name"] == "From":
             headers["sender"] = header["value"]
@@ -38,8 +40,10 @@ def print_emails(emails: list):
 
     :param emails: A list of emails to print.
     """
-    for email in emails:
-        print(f"subject: {email.subject}")
+    counts = collections.Counter([email.subject for email in emails])
+    print(
+        tabulate({"Subject": counts.keys(), "Count": counts.values()}, headers="keys")
+    )
 
 
 class EmailFetcher:
@@ -52,7 +56,7 @@ class EmailFetcher:
     def __init__(self):
         self.gmail = GmailService().get()
 
-    def get_email_by_id(self, message_id, user="me") -> dict:
+    def get_email_by_id(self, message_id, user: str = "me") -> dict:
         """
         Gets the email by the message id for specified user.
 
@@ -108,10 +112,16 @@ class EmailFetcher:
         """
         response = self.get_response()
         emails = []
-        print(f"Fetching {num_emails} emails 100 at a time...")
-        for _ in progressbar.progressbar(
-            range(0, num_emails, len(response["messages"]))
-        ):
+        if len(response["messages"]) < num_emails and len(response["messages"]) < 100:
+            print(
+                f"{num_emails} requested but only {len(response['messages'])} emails found."
+            )
+        else:
+            print(
+                f"{len(response['messages'])} initially found. Attempting to fetch remaining {num_emails - len(response['messages'])} emails 100 at a time..."
+            )
+        num_requests = num_emails // len(response["messages"])
+        for _ in progressbar.progressbar(range(num_requests)):
             emails.extend(self.extract_email_info(response["messages"]))
             if response.get("nextPageToken", None) is not None:
                 response = self.get_response(response["nextPageToken"])
@@ -171,6 +181,8 @@ class Deleter:
         """
         emails = self.count_emails_by_sender()
         senders = sorted(emails, key=lambda k: len(emails[k]), reverse=True)
+        table = [[sender, len(emails[sender])] for sender in senders]
+        print(tabulate(table, headers=["Sender", "Count"]))
         for sender in senders:
             num_emails = len(emails[sender])
             answer = input(
