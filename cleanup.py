@@ -18,6 +18,12 @@ from models.email import Email
 pp = pprint.PrettyPrinter(indent=4)
 
 
+def bytesto(bytes, to, bsize=1024):
+    a = {"k": 1, "m": 2, "g": 3, "t": 4, "p": 5, "e": 6}
+    r = float(bytes)
+    return bytes / (bsize ** a[to])
+
+
 def get_email_headers(email) -> dict:
     """
     Extracts the headers from the email and returns them as a dict.
@@ -41,9 +47,10 @@ def print_emails(emails: list):
     :param emails: A list of emails to print.
     """
     counts = collections.Counter([email.subject for email in emails])
-    print(
-        tabulate({"Subject": counts.keys(), "Count": counts.values()}, headers="keys")
-    )
+    size = bytesto(sum(email.size for email in emails), "m")
+    for email in emails:
+        print(f"{email.subject} - {email.sender} - {email.size} bytes")
+    print(f"Total size: {size} MB")
 
 
 class EmailFetcher:
