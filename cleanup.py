@@ -4,6 +4,11 @@ to get a number of emails from your gmail account and .
 """
 
 from collections import defaultdict
+from rich.prompt import IntPrompt
+from rich.theme import Theme
+from rich.highlighter import RegexHighlighter
+from rich.console import Console
+from rich.prompt import Confirm
 from typing import List
 import pprint
 import collections
@@ -16,6 +21,15 @@ from models.email import Email
 
 
 pp = pprint.PrettyPrinter(indent=4)
+
+console = Console()
+
+
+class EmailHighlighter(RegexHighlighter):
+    """Apply style to anything that looks like an email."""
+
+    base_style = "example."
+    highlights = [r"(?P<email>[\w-]+@([\w-]+\.)+[\w-]+)"]
 
 
 def bytesto(bytes, to, bsize=1024):
@@ -49,8 +63,8 @@ def print_emails(emails: list):
     counts = collections.Counter([email.subject for email in emails])
     size = bytesto(sum(email.size for email in emails), "m")
     for email in emails:
-        print(f"{email.subject} - {email.sender} - {email.size} bytes")
-    print(f"Total size: {size} MB")
+        console.print(f"{email.subject} - {email.sender} - {email.size} bytes")
+    console.print(f"Total size: {size} MB")
 
 
 class EmailFetcher:
@@ -120,11 +134,11 @@ class EmailFetcher:
         response = self.get_response()
         emails = []
         if len(response["messages"]) < num_emails and len(response["messages"]) < 100:
-            print(
+            console.print(
                 f"{num_emails} requested but only {len(response['messages'])} emails found."
             )
         else:
-            print(
+            console.print(
                 f"{len(response['messages'])} initially found. Attempting to fetch remaining {num_emails - len(response['messages'])} emails 100 at a time..."
             )
         num_requests = num_emails // len(response["messages"])
@@ -189,28 +203,31 @@ class Deleter:
         emails = self.count_emails_by_sender()
         senders = sorted(emails, key=lambda k: len(emails[k]), reverse=True)
         table = [[sender, len(emails[sender])] for sender in senders]
-        print(tabulate(table, headers=["Sender", "Count"]))
+        theme = Theme({"example.email": "bold magenta"})
+        console = Console(highlighter=EmailHighlighter(), theme=theme)
+        console.print(tabulate(table, headers=["Sender", "Count"]))
         for sender in senders:
             num_emails = len(emails[sender])
-            answer = input(
-                f"View more info on {num_emails} emails from {sender}? (y/n)"
+            answer = Confirm.ask(
+                f"View more info on {num_emails} emails from {sender}?"
             )
-            if answer.lower() == "y":
+            if answer:
                 print_emails(emails[sender])
-            answer = input(f"Delete all {num_emails} emails from {sender}? (y/n)")
+            answer = Confirm.ask(f"Delete all {num_emails} emails from {sender}?")
             if answer.lower() == "y":
                 logging.info("Deleting emails from sender: %s", sender)
                 self._move_emails_to_trash(emails[sender])
 
 
-def main(num_emails: int):
+def main():
     """
     Get the number of emails, count the amount of emails per sender, and delete the emails from
     the top senders.
     """
-    emails = EmailFetcher().get(num_emails)
+    option = IntPrompt.ask("Enter the number of emails to delete")
+    emails = EmailFetcher().get(option)
     Deleter(emails=emails).run()
 
 
 if __name__ == "__main__":
-    typer.run(main)
+    typer.run(main())
