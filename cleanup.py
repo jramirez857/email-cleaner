@@ -4,7 +4,6 @@ to get a number of emails from your gmail account and .
 """
 
 from collections import defaultdict
-from rich.prompt import IntPrompt
 from rich.theme import Theme
 from rich.highlighter import RegexHighlighter
 from rich.console import Console
@@ -13,7 +12,6 @@ from typing import List
 import pprint
 import collections
 import logging
-import typer
 import progressbar
 from tabulate import tabulate
 from gmail import GmailService
@@ -217,17 +215,3 @@ class Deleter:
             if answer.lower() == "y":
                 logging.info("Deleting emails from sender: %s", sender)
                 self._move_emails_to_trash(emails[sender])
-
-
-def main():
-    """
-    Get the number of emails, count the amount of emails per sender, and delete the emails from
-    the top senders.
-    """
-    option = IntPrompt.ask("Enter the number of emails to delete")
-    emails = EmailFetcher().get(option)
-    Deleter(emails=emails).run()
-
-
-if __name__ == "__main__":
-    typer.run(main())
